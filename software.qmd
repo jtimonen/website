@@ -2,8 +2,6 @@
 title: "Software"
 ---
 
-# R packages
-
 I have written many R packages for statistical modeling
 that use [Stan](https://mc-stan.org/) under
 the hood for fitting the models.
@@ -12,4 +10,11 @@ the hood for fitting the models.
 * [lgpr2](https://github.com/jtimonen/lgpr2): Approximate GP modeling of longitudinal data
 * [lgpr](https://jtimonen.github.io/lgpr-usage/): Modeling longitudinal data using Gaussian processes
 
-![](images/lgpr.png){width=400}
+
+:::{.border}
+ 
+:::
+
+
+![](images/lgpr.png){width=500}
+

@@ -20,5 +20,5 @@ about:
 ---
 
 I am a doctoral student in the [Computational Systems Biology](https://research.cs.aalto.fi/csb/) group. My research topics and interests include Gaussian processes for longitudinal data and
-Bayesian ordinary differential equation models. I work with [Generable Inc.](https://www.generable.com/) where we employ
+Bayesian ordinary differential equation models. I work with [Generable Inc.](https://www.generable.com/), employing
 statistical models to support drug development.

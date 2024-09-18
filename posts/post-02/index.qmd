@@ -5,30 +5,29 @@ toc: true
 author: "Juho Timonen"
 categories: Stan, C++
 series: [Stan C++]
-date: 2021-12-02T12:00:00+02:00
-lastmod: 2021-12-03T12:00:00+02:00
+date: 2022-01-14T12:00:00+02:00
 keywords: Stan, C++
 draft: false
 code-block-bg: true
 ---
 
-## Introduction
+# Introduction
 
-### Recap of Part 1
-We pick up from where we left off in [Part 1](https://jtimonen.github.io/posts/post-01/). We started with a CmdStan command-line call like
+## Recap of Part 1
+We pick up from where we left off in [Part 1](https://jtimonen.github.io/posts/post-01/). We found out that CmdStan calls the Stan services in `cmdstan::command()`. For example with the command-line call
 ```bash
 mymodel.exe id=1 method=sample algorithm=hmc engine=nuts adapt engaged=1
 ```
-and found out that CmdStan calls the Stan services in `cmdstan::command()`. There, the
-command-line arguments are parsed and consequently based on them,
 
 1. the called service is `stan::services::sample::hmc_nuts_diag_adapt()`
 2. which then calls `stan::services::util::run_adaptive_sampler()`
 3. which calls `stan::services::util::generate_transitions()`.
 
-### Starting point for Part 2
+Note: All code pieces shown from now on in this post are adapted from [the stan source code](https://github.com/stan-dev/stan), licenced under the new BSD licence. Comments starting with `...` indicate parts that have been left out from original source code. During writing of this post, the most recent Stan version is 2.28.2. The hyperlinks to source code cannot be guaranteed to work in the future, if the source repo organization is changed or files are renamed.
+
+## Starting point for Part 2
+
 We find `generate_transitions()` in [generate_transitions.hpp](https://github.com/stan-dev/stan/blob/develop/src/stan/services/util/generate_transitions.hpp).
-Here and throughout this post, comments starting with `...` indicate parts of code that have been left out.
 
 ```cpp
 void generate_transitions(stan::mcmc::base_mcmc& sampler, int num_iterations,
@@ -41,24 +40,33 @@ void generate_transitions(stan::mcmc::base_mcmc& sampler, int num_iterations,
 }
 ```
 
-Among other things it takes as input the sampler, model, and initial point, all of which have been created by now. The function is basically just a loop that calls `sampler.transition()` repeatedly for `num_iterations` times.
-The interesting part to us is how a transition is performed, and this is defined by `sampler.transition()`. As we will see, different sampler classes define the transition differently. Also whether we are doing adaptation or not is an *attribute* of `sampler`. 
+Among other things, it takes as input the sampler, model, and initial point in parameter space. The function is basically just a loop that calls 
+`sampler.transition()` repeatedly for `num_iterations` times. Therefore, all interesting algorithmic code and properties that define how sampling works, 
+whether adaptation is performed etc, have to be included as part of `sampler`.
 
-We will therefore now jump from the `stan::services` namespace to [`stan::mcmc`](https://github.com/stan-dev/stan/tree/develop/src/stan/mcmc), where the different samplers and their transitions are defined.
+This is why we now jump from the `stan::services` namespace to `stan::mcmc`, 
+where the different samplers and their transitions are defined.
 
-## Sampler classes
+# Samplers
 
-We see in `generate_transitions()` that `sampler` has to have type `base_mcmc`. However, in `hmc_static_diag_e_adapt()`, where `sampler`
-is instantiated, it has (templated) type `adapt_diag_e_static_hmc`. So what is going on? 
+We see in `generate_transitions()` that `sampler` has to have type `base_mcmc`. However, in `stan::services::sample::hmc_nuts_diag_e_adapt()`,
+our sampler was declared as
+
+```cpp
+stan::mcmc::adapt_diag_e_nuts<Model, boost::ecuyer1988> sampler(model, rng);
+```
+
+so what is going on?
 
 <center><img src="sampler_class_inheritance.png" alt="Sampler Classes" width=790></center>
 
-It appears that `adapt_diag_e_static_hmc` is a class that *derives* from `base_mcmc` through multiple levels of inheritance
-as can be seen from the above diagram.
+It appears that `adapt_diag_e_nuts` is a (templated) class that 
+[derives](https://en.cppreference.com/w/cpp/language/derived_class) from 
+`base_mcmc` through multiple levels of inheritance, as can be seen from the above diagram.
 
-### base_mcmc
+## base_mcmc
 
- This is just an *interface* for all MCMC samplers, as it doesn't contain any function bodies.
+This is just an [interface](https://en.cppreference.com/w/cpp/language/abstract_class) for all MCMC samplers, as it doesn't contain any function bodies.
 
 ```cpp
 class base_mcmc {
@@ -78,11 +86,14 @@ class base_mcmc {
 };
 ```
 
-The class member functions are all *virtual* (except the constructor, which never should be), meaning that deriving classes can override them. We see that `transition()` is *pure virtual* (declared with `= 0`), meaning that any deriving class *must* override it. 
+The class member functions are all *virtual* (except the constructor), 
+meaning that deriving classes can override them. We see that `transition()`
+is *pure virtual* (declared with = 0), meaning that a deriving class 
+*must* override it in order to be instantiable.
 
 
 
-### base_hmc
+## base_hmc
 
 This is a base for all Hamiltonian samplers, and derives from `base_mcmc`.
 
@@ -207,47 +218,272 @@ class base_hmc : public base_mcmc {
 };
 ```
 
+We see that the class doesn’t implement `transition()`, so it is also an abstract class. What it does do is it defines some attributes that all Hamiltonian samplers need.
 
-## Example
+### class attributes
 
-We have written a Stan model in **banana.stan**. It specifies a two-dimensional version of the distribution is discussed in [Haario et. al (1999)](https://link.springer.com/article/10.1007/s001800050022).
+The attributes listed as protected describe the internal state of the sampler. All Hamiltonian samplers have these attributes, and the most interesting ones of them are
 
-```
-// banana.stan
-parameters {
-  vector[2] theta;
-}
+* `z_`: current state of the sampler (point in parameter space)
+* `integrator_`: numerical integrator used to simulate the Hamiltonian dynamics
+* `hamiltonian_`: the Hamiltonian system
+* `epsilon_` / `nom_epsilon_`: step size of the integrator
 
-model {
-  real a = 10.0;
-  real b = 0.03;
-  target += normal_lpdf(theta[1] | 0.0, a);
-  target += normal_lpdf(theta[2] + b * square(theta[1]) - a * b | 0.0, 1.0);
-}
-```
+### getters
 
-Here is our R code for sampling from the distribution.
+The above are private attributes and should not be directly [accessed](https://en.cppreference.com/w/cpp/language/access)
+from the outside. Instead, there are some getter methods that can be used, 
+for example
 
-```{r, eval = FALSE}
-library(cmdstanr)
-library(ggplot2)
-model <- cmdstan_model(stan_file = "banana.stan")
-model$save_hpp_file()
-fit <- model$sample(adapt_delta = 0.95, init = 0)
-theta_1 <- as.vector(fit$draws("theta[1]"))
-theta_2 <- as.vector(fit$draws("theta[2]"))
-df <- data.frame(theta_1, theta_2)
-plt <- ggplot(df, aes(x = theta_1, y = theta_2)) +
-  geom_point(alpha = 0.5, col = "firebrick") +
-  ggtitle("Draws")
-plt
+```cpp
+  typename Hamiltonian<Model, BaseRNG>::PointType& z() { return z_; }
 ```
 
-We plot the draws to give an idea what the distribution looks like.
+so one could use `sampler.z()` to get the current point in the (unconstrained) parameter space.
 
-<center><img src="draws.jpeg" alt="Draws" width=560></center>
+### init_stepsize()
 
-## References
+The first actual algorithm that we encouter is the `init_stepsize()` method
+of the `base_hmc` class, defined in [base_hmc.hpp](https://github.com/stan-dev/stan/blob/develop/src/stan/mcmc/hmc/base_hmc.hpp). This defines how the integrator's initial stepsize (possibly given by user) is refined. As we saw in Part 1, this gets called in `stan::services::sample::hmc_nuts_diag_e_adapt()` before any MCMC iterations are done.
 
-Haario, H., Saksman, E., and Tamminen, J. (1999). **Adaptive proposal distribution for random
-walk Metropolis algorithm.** Computational Statistics, 14:375–395.
+```cpp
+void init_stepsize(callbacks::logger& logger) {
+    ps_point z_init(this->z_);
+
+    // Skip initialization for extreme step sizes
+    if (this->nom_epsilon_ == 0 || this->nom_epsilon_ > 1e7
+        || std::isnan(this->nom_epsilon_))
+      return;
+
+    this->hamiltonian_.sample_p(this->z_, this->rand_int_);
+    this->hamiltonian_.init(this->z_, logger);
+
+    // Guaranteed to be finite if randomly initialized
+    double H0 = this->hamiltonian_.H(this->z_);
+
+    this->integrator_.evolve(this->z_, this->hamiltonian_, this->nom_epsilon_,
+                             logger);
+
+    double h = this->hamiltonian_.H(this->z_);
+    if (std::isnan(h))
+      h = std::numeric_limits<double>::infinity();
+
+    double delta_H = H0 - h;
+
+    int direction = delta_H > std::log(0.8) ? 1 : -1;
+
+    while (1) {
+      this->z_.ps_point::operator=(z_init);
+
+      this->hamiltonian_.sample_p(this->z_, this->rand_int_);
+      this->hamiltonian_.init(this->z_, logger);
+
+      double H0 = this->hamiltonian_.H(this->z_);
+
+      this->integrator_.evolve(this->z_, this->hamiltonian_, this->nom_epsilon_,
+                               logger);
+
+      double h = this->hamiltonian_.H(this->z_);
+      if (std::isnan(h))
+        h = std::numeric_limits<double>::infinity();
+
+      double delta_H = H0 - h;
+
+      if ((direction == 1) && !(delta_H > std::log(0.8)))
+        break;
+      else if ((direction == -1) && !(delta_H < std::log(0.8)))
+        break;
+      else
+        this->nom_epsilon_ = direction == 1 ? 2.0 * this->nom_epsilon_
+                                            : 0.5 * this->nom_epsilon_;
+
+      if (this->nom_epsilon_ > 1e7)
+        throw std::runtime_error(
+            "Posterior is improper. "
+            "Please check your model.");
+      if (this->nom_epsilon_ == 0)
+        throw std::runtime_error(
+            "No acceptably small step size could "
+            "be found. Perhaps the posterior is "
+            "not continuous?");
+    }
+
+    this->z_.ps_point::operator=(z_init);
+  }
+```
+
+On the lines
+
+```cpp
+    double H0 = this->hamiltonian_.H(this->z_);
+    this->integrator_.evolve(this->z_, this->hamiltonian_, this->nom_epsilon_,logger);
+    double h = this->hamiltonian_.H(this->z_);
+    double delta_H = H0 - h;
+```
+
+the Hamiltonian is first computed at the current point `z_`, then the integrator evolves the state, after which the Hamiltonian is computed at the new state. The change in Hamiltonian (`delta_H`) then determines how the nominal stepsize (`nom_epsilon_`) is refined, or if it is suitable so that the actual MCMC 
+sampling can start.
+
+## base_nuts
+
+This is defined in [base_nuts.hpp](https://github.com/stan-dev/stan/blob/develop/src/stan/mcmc/hmc/nuts/base_nuts.hpp), and is the base class for No-U-Turn samplers with multinomial sampling. This class, which derives from `base_hmc`, is the first place where we encounter an implementation of `transition()`. You can read the comments in the source code of the `transition()` method to get and idea of the progress of the algorithm. We won’t go into details of the NUTS algorithm here, but just notice that the `transition()` function takes as input a `sample& init_sample` and generates a new `sample` object and returns it. Here, sample is a class that describes one MCMC draw, and it is defined in [sample.hpp](https://github.com/stan-dev/stan/blob/develop/src/stan/mcmc/sample.hpp).
+
+## diag_e_nuts
+
+This is a base class for NUTS with the diagonal HMC metric (diagonal mass matrix), and derives from `base_nuts`. There are similar classes for the dense and unit metric too. There are no new methods here.
+
+## adapt_diag_e_nuts
+
+Finally we get to the class the defines the adaptive NUTS sampler with the diagonal metric. This class, `adapt_diag_e_nuts`, derives from `diag_e_nuts`. It overrides the `transition()` method with
+
+```cpp
+sample transition(sample& init_sample, callbacks::logger& logger) {
+    sample s = diag_e_nuts<Model, BaseRNG>::transition(init_sample, logger);
+
+    if (this->adapt_flag_) {
+      this->stepsize_adaptation_.learn_stepsize(this->nom_epsilon_,
+                                                s.accept_stat());
+
+      bool update = this->var_adaptation_.learn_variance(this->z_.inv_e_metric_,
+                                                         this->z_.q);
+
+      if (update) {
+        this->init_stepsize(logger);
+
+        this->stepsize_adaptation_.set_mu(log(10 * this->nom_epsilon_));
+        this->stepsize_adaptation_.restart();
+      }
+    }
+    return s;
+  }
+```
+
+The actual transition
+
+```cpp
+sample s = diag_e_nuts<Model, BaseRNG>::transition(init_sample, logger);
+```
+
+is still performed by calling the implementation of the parent class. This is the implementation defined in `base_nuts`, because `diag_e_nuts` does not override it.
+The other code is for adapting the HMC metric and the integrator step size. To study how this work, we need to find out what `stepsize_adaptation_` and `var_adaptation_` are. However, we can’t seem to find them in `adapt_diag_e_nuts.hpp`. So what is again going on?
+
+# Adaptation
+
+We find that in addition to `diag_e_nuts`, the `adapt_diag_e_nuts` class derives also from another class, called `stepsize_var_adapter` (defined in [stepsize_var_adapter.hpp](https://github.com/stan-dev/stan/blob/develop/src/stan/mcmc/stepsize_var_adapter.hpp)).
+
+## Class hierarchy
+
+
+<center><img src="adaptation.png" alt="Adaptation Classes" width=790></center>
+
+The above diagram explains why sampler objects of class `adapt_diag_e_nuts`
+have the `stepsize_adaptation_` and `var_adaptation_ attributes`.
+The former is for adapting the integrator step size and the latter for adapting the mass matrix diagonal. The metric is adapted in three [windows](https://github.com/stan-dev/stan/blob/develop/src/stan/mcmc/windowed_adaptation.hpp), which are called *init_buffer*, *term_buffer* and *base_window*. The the most abstract base class is [base_adaptation](https://github.com/stan-dev/stan/blob/develop/src/stan/mcmc/base_adaptation.hpp),
+which doesn’t contain any implemented methods.
+
+
+## Algorithms
+
+Let’s now return to studying the `transition()` method of the `adapt_diag_e_nuts`
+class. When the `adapt_flag_` is on (that is, in the warmup phase), each transition will run the code
+
+```cpp
+  this->stepsize_adaptation_.learn_stepsize(this->nom_epsilon_,
+                                                s.accept_stat());
+
+  bool update = this->var_adaptation_.learn_variance(this->z_.inv_e_metric_,
+                                                         this->z_.q);
+
+  if (update) {
+    this->init_stepsize(logger);
+
+    this->stepsize_adaptation_.set_mu(log(10 * this->nom_epsilon_));
+    this->stepsize_adaptation_.restart();
+  }
+```
+
+### learn_stepsize()
+
+The `learn_stepsize()` algorithm is defined in `stepsize_adaptation.hpp`.
+
+```cpp
+void learn_stepsize(double& epsilon, double adapt_stat) {
+    ++counter_;
+
+    adapt_stat = adapt_stat > 1 ? 1 : adapt_stat;
+
+    // Nesterov Dual-Averaging of log(epsilon)
+    const double eta = 1.0 / (counter_ + t0_);
+
+    s_bar_ = (1.0 - eta) * s_bar_ + eta * (delta_ - adapt_stat);
+
+    const double x = mu_ - s_bar_ * std::sqrt(counter_) / gamma_;
+    const double x_eta = std::pow(counter_, -kappa_);
+
+    x_bar_ = (1.0 - x_eta) * x_bar_ + x_eta * x;
+
+    epsilon = std::exp(x);
+  }
+```
+
+### learn_variance()
+
+The `learn_variance()` algorithm on the other hand is defined in 
+[var_adaptation.hpp](https://github.com/stan-dev/stan/blob/develop/src/stan/mcmc/var_adaptation.hpp)
+
+```cpp
+bool learn_variance(Eigen::VectorXd& var, const Eigen::VectorXd& q) {
+    if (adaptation_window())
+      estimator_.add_sample(q);
+
+    if (end_adaptation_window()) {
+      compute_next_window();
+
+      estimator_.sample_variance(var);
+
+      double n = static_cast<double>(estimator_.num_samples());
+      var = (n / (n + 5.0)) * var
+            + 1e-3 * (5.0 / (n + 5.0)) * Eigen::VectorXd::Ones(var.size());
+
+      if (!var.allFinite())
+        throw std::runtime_error(...);
+
+      estimator_.restart();
+
+      ++adapt_window_counter_;
+      return true;
+    }
+
+    ++adapt_window_counter_;
+    return false;
+  }
+```
+
+The interesting thing about this is that it returns `true` at the end of the three adaptation windows, and otherwise `false`. This return value (`update`)
+determines what happens at the end of the transition.
+
+### update
+
+```cpp
+  if (update) {
+    this->init_stepsize(logger);
+
+    this->stepsize_adaptation_.set_mu(log(10 * this->nom_epsilon_));
+    this->stepsize_adaptation_.restart();
+  }
+```
+
+This part is again an interesting algorithmic detail of the adaptation. We see that at the end of each window of metric adaptation, the stepsize adaptation is restarted from 10 times the average stepsize from the previous window. See [this thread](https://discourse.mc-stan.org/t/issue-with-dual-averaging/5995) for some motivation, discussion, and potential problems caused by this approach.
+
+# Conclusion
+
+* In this post we looked at the hierarchy of sampler and adaptation classes in Stan. These are all part of the `stan::mcmc` namespace, and are needed by the services (`stan::services`).
+* The algorithmic details of a sampler are defined by its `transition`. We did not study the algorithms in detail, but mainly how the code is organized and where to find the implementations of the algorithms.
+* For HMC samplers, one part of the algorithm is always `init_stepsize()`, which initializes the stepsize of the leapfrog integrator before any MCMC transitions.
+* In this post, we did not go into the details of the [Hamiltonians](https://github.com/stan-dev/stan/tree/develop/src/stan/mcmc/hmc/hamiltonians) and [integrators](https://github.com/stan-dev/stan/tree/develop/src/stan/mcmc/hmc/integrators). These have a key role in the NUTS transition, and the details
+can be studied in the linked source code.
+
+
+
+
+

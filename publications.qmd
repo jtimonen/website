@@ -3,7 +3,7 @@ title: "Publications"
 ---
 
 
-* **Scalable mixed-domain Gaussian process modeling and model reduction for longitudinal data**. Timonen, J. & Lähdesmäki, H., 2024, [arXiv]((https://arxiv.org/abs/2111.02019))
+* **Scalable mixed-domain Gaussian process modeling and model reduction for longitudinal data**. Timonen, J. & Lähdesmäki, H., 2024, [arXiv](https://arxiv.org/abs/2111.02019)
 
 * **An importance sampling approach for reliable and efficient inference in Bayesian ordinary differential equation models**. Timonen, J., Siccha, N., Bales, B., Lähdesmäki, H. & Vehtari, A., 2023, [Stat](https://onlinelibrary.wiley.com/doi/10.1002/sta4.614). 12, 1, e614.
 

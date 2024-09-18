@@ -16,6 +16,8 @@ website:
         text: Publications
       - href: software.qmd
         text: Software
+      - href: projects.qmd
+        text: Misc
 
 format:
   html:

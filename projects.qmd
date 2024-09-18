@@ -1,0 +1,39 @@
+---
+title: "Hobby projects"
+format:
+  html:
+    number-sections: false
+---
+
+Stupid hobby projects.
+
+
+::: {layout-ncol=3}
+![](images/hp/hp-snake.png){width=300}
+
+![](images/hp/hp-pacer.png){width=300}
+
+![](images/hp/hp-darts.png){width=300}
+:::
+
+
+## Snake game 
+
+A simple game using raw Javascript.
+
+- [Play](https://jtimonen.github.io/snake-game/snake.html)
+- [Source](https://github.com/jtimonen/snake-game)
+
+## Darts simulator 
+
+Where should I aim given my skill level? 
+
+- [Source](https://github.com/jtimonen/darts-simulator)
+
+## Pace converter
+
+Useful for runners.
+
+- [Try online](https://jtimonen.github.io/pacer/pacer.html)
+- [Source](https://github.com/jtimonen/pacer)
+

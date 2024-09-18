@@ -1,3 +1,3 @@
 ## website
 
-My personal static website created using Quarto. Deployed [here](jtimonen.github.io).
+My personal static website created using Quarto. Deployed at [jtimonen.github.io](https://jtimonen.github.io/).

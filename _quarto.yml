@@ -4,6 +4,7 @@ project:
 website:
   title: "Juho Timonen"
   site-url: https://jtimonen.github.io
+  favicon: images/icon.png
   description: "Juho Timonen's personal website"
   navbar:
     left:
@@ -22,9 +23,10 @@ website:
 
 format:
   html:
-    theme: flatly
+    theme: lumen
     css: styles.css
     toc: true
+    number-sections: true
 
 
 

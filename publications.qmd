@@ -2,6 +2,7 @@
 title: "Publications"
 ---
 
+
 * **Scalable mixed-domain Gaussian process modeling and model reduction for longitudinal data**. Timonen, J. & Lähdesmäki, H., 2024, *arXiv preprint*. [url](https://arxiv.org/abs/2111.02019)
 
 
@@ -11,3 +12,4 @@ title: "Publications"
 
 * **A probabilistic framework for molecular network structure inference by means of mechanistic modeling**. Timonen, J., Mannerström, H., Lähdesmäki, H. & Intosalmi, J., 2018, *IEEE-ACM Transactions on Computational Biology and Bioinformatics*. 16, 6, p. 1843-1854 [url](https://ieeexplore.ieee.org/document/8334413)
 
+![](images/molecular_network.png){width=400}

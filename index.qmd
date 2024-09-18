@@ -1,0 +1,20 @@
+---
+title: "Juho Timonen"
+image: images/profile.jpg
+about:
+  template: jolla
+  links:
+    - icon: github
+      text: github
+      href: https://github.com/jtimonen
+    - icon: strava
+      text: strava
+      href: https://www.strava.com/athletes/89082730
+listing:
+  contents: posts
+  sort: "date desc"
+  type: default
+  categories: true
+---
+
+Applied mathematics and programming.

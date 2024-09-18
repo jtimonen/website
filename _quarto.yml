@@ -9,8 +9,16 @@ website:
     left:
       - href: index.qmd
         text: Home
+        icon: house
       - href: blog.qmd
         text: Blog
+        icon: bookmark
+      - href: publications.qmd
+        text: Publications
+        icon: book
+      - href: software.qmd
+        text: Software
+        icon: body-text
 
 format:
   html:

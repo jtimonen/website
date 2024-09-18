@@ -1,0 +1,9 @@
+---
+title: "Software"
+---
+
+# R packages
+
+* [odemodeling](https://github.com/jtimonen/odemodeling): Building and fitting Bayesian ODE models 
+* [lgpr2](https://github.com/jtimonen/lgpr2): Approximate GP modeling of longitudinal data
+* [lgpr](https://jtimonen.github.io/lgpr-usage/): Modeling longitudinal data using Gaussian processes

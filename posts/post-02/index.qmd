@@ -374,7 +374,7 @@ We find that in addition to `diag_e_nuts`, the `adapt_diag_e_nuts` class derives
 ## Class hierarchy
 
 
-<center><img src="adaptation.png" alt="Adaptation Classes" width=790></center>
+<center><img src="adaptation.png" alt="Adaptation Classes" width=490></center>
 
 The above diagram explains why sampler objects of class `adapt_diag_e_nuts`
 have the `stepsize_adaptation_` and `var_adaptation_ attributes`.

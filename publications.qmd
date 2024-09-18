@@ -1,0 +1,13 @@
+---
+title: "Publications"
+---
+
+* **Scalable mixed-domain Gaussian process modeling and model reduction for longitudinal data**. Timonen, J. & Lähdesmäki, H., 2024, *arXiv preprint*. [url](https://arxiv.org/abs/2111.02019)
+
+
+* **An importance sampling approach for reliable and efficient inference in Bayesian ordinary differential equation models**. Timonen, J., Siccha, N., Bales, B., Lähdesmäki, H. & Vehtari, A., 2023, *Stat*. 12, 1, e614. [url](https://onlinelibrary.wiley.com/doi/10.1002/sta4.614)
+
+* **lgpr: an interpretable non-parametric method for inferring covariate effects from longitudinal data**. Timonen, J., Mannerström, H., Vehtari, A. & Lähdesmäki, H., 2021, *Bioinformatics*. 37, 13, p. 1860-1867. [url](https://academic.oup.com/bioinformatics/article/37/13/1860/6104850)
+
+* **A probabilistic framework for molecular network structure inference by means of mechanistic modeling**. Timonen, J., Mannerström, H., Lähdesmäki, H. & Intosalmi, J., 2018, *IEEE-ACM Transactions on Computational Biology and Bioinformatics*. 16, 6, p. 1843-1854 [url](https://ieeexplore.ieee.org/document/8334413)
+

@@ -9,6 +9,7 @@ date: 2021-11-29T03:01:05+02:00
 lastmod: 2021-11-29T03:01:05+02:00
 keywords: Stan, C++
 draft: false
+code-block-bg: true
 ---
 
 
@@ -18,7 +19,7 @@ So, you have your [Stan](https://mc-stan.org/) model written and are doing infer
 
 ### Code organization
 
-<img src="stan-structure.svg" alt="Stan Organization" width=560>
+<img src="stan-structure.png" alt="Stan Organization" width=560>
 
 Relationships between different libraries and various interfaces related to Stan are visualized in the above diagram. The C++ core that we study in this post is organized into three parts.
 
@@ -50,7 +51,7 @@ We could have used `model$save_hpp_file()` to save the model C++ code into **mym
 ### Running the executable
 The call `model$sample(adapt_delta = 0.95, refresh = 100)` [creates four processes](https://github.com/stan-dev/cmdstanr/blob/master/R/run.R) (because the default number of chains is four) that each run the executable. For example, the first process creates the command-line call
 
-```
+```bash
 mymodel.exe id=1 random seed=660816326 output file=<opath>.csv refresh=100 profile_file=<ppath>.csv method=sample save_warmup=0 algorithm=hmc engine=nuts adapt delta=0.95 engaged=1
 ```
 
@@ -66,7 +67,7 @@ Inside the **cmdstan** source code repository, we go to **cmdstan/src/cmdstan**.
 
 We find a [main.cpp](https://github.com/stan-dev/cmdstan/blob/develop/src/cmdstan/main.cpp), which looks promising. It actually includes an 
 
-```
+```cpp
 int main(int argc, const char *argv[]) {
   // ...
 }
@@ -79,7 +80,7 @@ function which is the starting point of any C++ program. Based on our command-li
 Inside the `command()` function is a huge if-else parade which is quite difficult to read. So here is a high-level summary of the control flow
 inside it.
 
-```
+```cpp
 int command(int argc, const char *argv[]) {
 
   // ... parse the arguments
@@ -187,14 +188,14 @@ Inside the **stan** source code repository, we go to **stan/src/stan**.
 
 In **services/sample** we find [hmc_nuts_diag_e_adapt.hpp](https://github.com/stan-dev/stan/blob/develop/src/stan/services/sample/hmc_nuts_diag_e_adapt.hpp) which contains the function that we called from CmdStan. But wait, it is actually overloaded with four different versions of it with the same name. Not to mention each of these are templated. We will not stop here to think much about why these all versions of `hmc_nuts_diag_e_adapt()` are needed. A very valid print debugging approach reveals that in our case, we call the fourth one, which calls the second one, which then calls the first one. There we have
 
-```
+```cpp
 std::vector<double> cont_vector = util::initialize(
       model, init, rng, init_radius, true, logger, init_writer);
 ```
 
 where the parameter values are initialized. In `initialize()`, which is defined in [initialize.hpp](https://github.com/stan-dev/stan/blob/develop/src/stan/services/util/initialize.hpp), we try most 100 random initial points, until a point where log probability and its gradient can be evaluated successfully. In our case the first try is successful. Therefore we can now think that we exist somewhere in the (unconstrained) parameter space, at a point stored in `cont_vector`. The next step is to call
 
-```
+```cpp
   util::run_adaptive_sampler(
       sampler, model, cont_vector, num_warmup, num_samples, num_thin, refresh,
       save_warmup, rng, interrupt, logger, sample_writer, diagnostic_writer);
@@ -211,11 +212,11 @@ So we are now at [run_adaptive_sampler.hpp](https://github.com/stan-dev/stan/blo
 - 3. Generating transitions, adaptation disengaged (sampling)
 
 The part
-```
+```cpp
 sampler.init_stepsize(logger)
 ```
 initializes the stepsize and is defined in [mcmc/hmc/base_hmc.hpp](https://github.com/stan-dev/stan/blob/develop/src/stan/mcmc/hmc/base_hmc.hpp). This already involves a bit of Hamiltonian computations and evolving the Leapfrog integrator. After this, we start to actually generate MCMC transitions using the sampler. This is done in two phases with calls to
-```
+```cpp
   util::generate_transitions();
 ```
  and in the first one we have adaptation engaged. We will look at `generate_transitions()` in the next blog post. Spoiler alert: `sampler.init_stepsize()` will be called there again so we will also look at it more.

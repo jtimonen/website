@@ -9,13 +9,14 @@ date: 2021-12-02T12:00:00+02:00
 lastmod: 2021-12-03T12:00:00+02:00
 keywords: Stan, C++
 draft: false
+code-block-bg: true
 ---
 
 ## Introduction
 
 ### Recap of Part 1
 We pick up from where we left off in [Part 1](https://jtimonen.github.io/posts/post-01/). We started with a CmdStan command-line call like
-```
+```bash
 mymodel.exe id=1 method=sample algorithm=hmc engine=nuts adapt engaged=1
 ```
 and found out that CmdStan calls the Stan services in `cmdstan::command()`. There, the
@@ -29,7 +30,7 @@ command-line arguments are parsed and consequently based on them,
 We find `generate_transitions()` in [generate_transitions.hpp](https://github.com/stan-dev/stan/blob/develop/src/stan/services/util/generate_transitions.hpp).
 Here and throughout this post, comments starting with `...` indicate parts of code that have been left out.
 
-```
+```cpp
 void generate_transitions(stan::mcmc::base_mcmc& sampler, int num_iterations,
                           ..., stan::mcmc::sample& init_s, Model& model, ...) {
   for (int m = 0; m < num_iterations; ++m) {
@@ -50,7 +51,7 @@ We will therefore now jump from the `stan::services` namespace to [`stan::mcmc`]
 We see in `generate_transitions()` that `sampler` has to have type `base_mcmc`. However, in `hmc_static_diag_e_adapt()`, where `sampler`
 is instantiated, it has (templated) type `adapt_diag_e_static_hmc`. So what is going on? 
 
-<center><img src="/images/post-02/sampler_class_inheritance.png" alt="Sampler Classes" width=790></center>
+<center><img src="sampler_class_inheritance.png" alt="Sampler Classes" width=790></center>
 
 It appears that `adapt_diag_e_static_hmc` is a class that *derives* from `base_mcmc` through multiple levels of inheritance
 as can be seen from the above diagram.
@@ -59,7 +60,7 @@ as can be seen from the above diagram.
 
  This is just an *interface* for all MCMC samplers, as it doesn't contain any function bodies.
 
-```
+```cpp
 class base_mcmc {
  public:
   base_mcmc() {}
@@ -85,7 +86,7 @@ The class member functions are all *virtual* (except the constructor, which neve
 
 This is a base for all Hamiltonian samplers, and derives from `base_mcmc`.
 
-```
+```cpp
 template <class Model, template <class, class> class Hamiltonian,
           template <class> class Integrator, class BaseRNG>
 class base_hmc : public base_mcmc {
@@ -244,7 +245,7 @@ plt
 
 We plot the draws to give an idea what the distribution looks like.
 
-<center><img src="/images/post-02/draws.jpeg" alt="Draws" width=560></center>
+<center><img src="draws.jpeg" alt="Draws" width=560></center>
 
 ## References
 

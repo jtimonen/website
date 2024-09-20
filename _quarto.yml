@@ -11,13 +11,13 @@ website:
       - href: index.qmd
         text: About
       - href: blog.qmd
-        text: Blog
+        text: Posts
       - href: publications.qmd
         text: Publications
       - href: software.qmd
         text: Software
       - href: projects.qmd
-        text: Misc
+        text: Hobby projects
 
 format:
   html:

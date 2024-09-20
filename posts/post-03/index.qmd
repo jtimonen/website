@@ -1,0 +1,23 @@
+---
+title: "New post"
+description: A new post.
+toc: true
+author: "Juho Timonen"
+categories:
+  - R
+date: today
+draft: false
+code-block-bg: true
+code-block-border-left: true
+highlight-style: pygments
+license: CC BY
+---
+
+# Introduction
+
+```{r}
+a <- c(1, 2, 3)
+print(a + 4)
+plot(a)
+```
+

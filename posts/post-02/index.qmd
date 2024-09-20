@@ -3,10 +3,10 @@ title: "Understanding the Stan codebase - Part 2: Samplers"
 description: Studying the C++ code of the NUTS algorithm of Stan.
 toc: true
 author: "Juho Timonen"
-categories: Stan, C++
-series: [Stan C++]
+categories: 
+  - Stan
+  - C++
 date: 2022-01-14T12:00:00+02:00
-keywords: Stan, C++
 draft: false
 code-block-bg: true
 code-block-border-left: true

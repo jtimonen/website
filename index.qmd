@@ -19,7 +19,9 @@ about:
       href: https://www.strava.com/athletes/89082730
 ---
 
-I am a doctoral student in the [Computational Systems Biology](https://research.cs.aalto.fi/csb/) group of Aalto University, Department
-of Computer Science. My research topics and interests include Gaussian processes for longitudinal data and
-Bayesian ordinary differential equation models. I work with [Generable Inc.](https://www.generable.com/), employing
-statistical models to support drug development.
+
+I completed my PhD thesis *Bayesian Ordinary Differential Equation and Gaussian Process Modeling of Biomedical Data* in the [Computational Systems Biology](https://research.cs.aalto.fi/csb/) group of Aalto University, Department
+of Computer Science. I work with [Generable Inc.](https://www.generable.com/), employing
+probabilistic models to support decision-making in drug development.
+
+![Neulamäki (Kuopio, Finland)](images/pics/nat2.jpg){width=100%}

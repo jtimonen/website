@@ -20,7 +20,7 @@ about:
 ---
 
 
-I completed my PhD thesis *Bayesian Ordinary Differential Equation and Gaussian Process Modeling of Biomedical Data* in the [Computational Systems Biology](https://research.cs.aalto.fi/csb/) group of Aalto University, Department
+I completed my PhD thesis [Bayesian Ordinary Differential Equation and Gaussian Process Modeling of Biomedical Data](https://aaltodoc.aalto.fi/items/18cbcdcc-55d7-4221-a053-22c06e32eab4) in the [Computational Systems Biology](https://research.cs.aalto.fi/csb/) group of Aalto University, Department
 of Computer Science. I work with [Generable Inc.](https://www.generable.com/), employing
 probabilistic models to support decision-making in drug development.
 

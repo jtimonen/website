@@ -8,3 +8,5 @@ _site/
 
 *.rds
 _freeze/
+
+**/*.quarto_ipynb
